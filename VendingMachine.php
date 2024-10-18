@@ -10,7 +10,7 @@ class VendingMachine
     private $drinks;
     private $accepted_coins = [0.05, 0.10, 0.20, 0.50, 1.00];
     private $total_amount = 0;
-    private $coin_invetory = [];
+
 
     public function __construct(array $currency_data, array $drinks)
     {
@@ -19,13 +19,25 @@ class VendingMachine
             die('Invalid currency configuration. Program stopped.');
         }
 
-        $this->currency = $currency_data['sign'] . ($currency_data['space'] ? ' ' : '');
-        $this->currency_position = $currency_data['position'];
+        // може ли от тук надолу поради някаква причина да няма space ?
+        // според нас следващите два реда трябва да се изместят във функцията "formatCurrency()"
+        $this->currency_data = $currency_data;
+        // възможно ли е тук да не е масив при условие, че конструктора задължава вход на масив?
+        // не е възможно премахнал съм излишната ппроверка
+        // не виждаме къде и как се проверяват напитките дали отговарят на някакъв правилен формат 'string' => 'float'
+        //добавил съм
 
         // Validate drinks
-        if (empty($drinks) || !is_array($drinks)) {
+        if (empty($drinks)) {
             die('Invalid drink configuration. Program stopped.');
         }
+
+        foreach ($drinks as $name => $price) {
+            if (!is_string($name) || !is_float($price)) {
+                die('Invalid drink configuration. Prices must be float and names must be strings. Program stopped.');
+            }
+        }
+
         $this->drinks = $drinks;
     }
 
@@ -50,11 +62,13 @@ class VendingMachine
         }
 
         $this->total_amount += $coin;
-        $this->coin_invetory[] = $coin;
+        // тази променлива се пълни с монети после се занулява, но никъде не се използва и не разбрахме каква е нейната роля в задачата.-премахната
+
         echo "<div>Успешно поставихте " . $this->formatCurrency($coin) . ", текущата Ви сума е " . $this->formatCurrency($this->total_amount) . "</div>";
         return $this;
     }
 
+    // тук нямаме забележки
     public function buyDrink($drink): VendingMachine
     {
         if (!isset($this->drinks[$drink])) {
@@ -73,6 +87,7 @@ class VendingMachine
         return $this;
     }
 
+    // тук нямаме забележки
     public function viewAmount(): VendingMachine
     {
         echo "<pre>Текущата Ви сума е " . $this->formatCurrency($this->total_amount) . "</pre>";
@@ -86,10 +101,11 @@ class VendingMachine
             return $this;
         }
 
-        $change = $this->total_amount;
-        $changeCoins = $this->calculateChange($change);
+        // защо total_amount става change, какво се е променило в него ?
 
-        echo "Получихте ресто " . $this->formatCurrency($change) . " в монети от:<br>";
+        $changeCoins = $this->calculateChange($this->total_amount);
+
+        echo "Получихте ресто " . $this->formatCurrency($this->total_amount) . " в монети от:<br>";
 
         foreach ($changeCoins as $coinInCents => $count) {
             if ($count > 0) {
@@ -101,18 +117,18 @@ class VendingMachine
         echo "<br>";
 
         $this->total_amount = 0;
-        $this->coin_invetory = [];
-
-        //$this->viewAmount();
 
         return $this;
     }
 
-    private function formatCurrency($amount): string
+    private function formatCurrency(float $amount): string
     {
-        return $this->currency_position == self::CURRENCY_POSITION_BEFORE
-            ? $this->currency . number_format($amount, 2)
-            : number_format($amount, 2) . $this->currency;
+        $currency = $this->currency_data['sign'];
+        $space = $this->currency_data['space'] ? ' ' : '';
+
+        return $this->currency_data['position'] == self::CURRENCY_POSITION_BEFORE
+            ? $currency . $space . number_format($amount, 2)
+            : number_format($amount, 2) . $space . $currency;
     }
 
     private function calculateChange(float $amount): array
@@ -139,12 +155,17 @@ class VendingMachine
         return $change;
     }
 
+    // това-> този синтаксик няма да работи на по-стари версии на php от 7.4 за това избрах втория вариант
+//echo implode( ', ', array_map( fn( $coin ) => $this->formatCurrency( $coin ), $this->accepted_coins ) );
     private function displayAcceptedCoins()
     {
         echo "Автоматът приема монети от: ";
-        foreach ($this->accepted_coins as $coin) {
-            echo $this->formatCurrency($coin) . ", ";
-        }
+
+        echo implode( ', ', array_map( function( $coin )  {
+            return  $this->formatCurrency( $coin );
+        }, $this->accepted_coins ) );
+
         echo "<br><br>";
     }
+
 }
