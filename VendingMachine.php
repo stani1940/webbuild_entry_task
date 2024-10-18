@@ -5,8 +5,6 @@ class VendingMachine
     const CURRENCY_POSITION_BEFORE = 1;
     const CURRENCY_POSITION_AFTER = 2;
 
-    private $currency;
-    private $currency_position;
     private $drinks;
     private $accepted_coins = [0.05, 0.10, 0.20, 0.50, 1.00];
     private $total_amount = 0;
